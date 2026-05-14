@@ -1,0 +1,250 @@
+variable,condition,time_h,value,unit
+Acetate,A'–N',0.0,1.16514,gC/L
+Acetate,A'–N',48.48,1.12396,gC/L
+Acetate,A'–N',72.38,0.91429,gC/L
+Acetate,A'–N',96.27,0.77967,gC/L
+Acetate,A'–N',144.41,0.5908,gC/L
+Acetate,A'–N',168.31,0.57693,gC/L
+Acetate,A'–N',192.32,0.58509,gC/L
+Acetate,A++,0.0,1.26341,gC/L
+Acetate,A++,48.6,1.14709,gC/L
+Acetate,A++,72.46,1.01674,gC/L
+Acetate,A++,96.31,0.85831,gC/L
+Acetate,A++,120.16,0.6678,gC/L
+Acetate,A++,144.32,0.46124,gC/L
+Acetate,A++,168.17,0.38303,gC/L
+Acetate,A++,192.32,0.34694,gC/L
+Acetate,N-,0.0,0.41913,gC/L
+Acetate,N-,48.6,0.35095,gC/L
+Acetate,N-,74.54,0.21658,gC/L
+Acetate,N-,98.4,0.06417,gC/L
+Acetate,N-,121.95,0.02005,gC/L
+Acetate,N-,144.32,0.01203,gC/L
+Acetate,N-,167.87,0.00802,gC/L
+Acetate,N-,192.32,0.00401,gC/L
+Acetate,TAP,0.0,0.41913,gC/L
+Acetate,TAP,49.2,0.35496,gC/L
+Acetate,TAP,67.98,0.24466,gC/L
+Acetate,TAP,90.35,0.09626,gC/L
+Acetate,TAP,115.39,0.02406,gC/L
+Acetate,TAP,144.32,0.01203,gC/L
+Acetate,TAP,167.87,0.00802,gC/L
+Acetate,TAP,192.32,0.00401,gC/L
+Active biomass,A'–N',0.0,0.0,gC/L
+Active biomass,A'–N',48.02,0.0216,gC/L
+Active biomass,A'–N',71.92,0.07659,gC/L
+Active biomass,A'–N',95.96,0.13048,gC/L
+Active biomass,A'–N',143.75,0.1538,gC/L
+Active biomass,A'–N',168.06,0.14807,gC/L
+Active biomass,A'–N',191.83,0.13236,gC/L
+Active biomass,A++,0.0,0.0,gC/L
+Active biomass,A++,47.86,0.01165,gC/L
+Active biomass,A++,72.06,0.08043,gC/L
+Active biomass,A++,96.03,0.17222,gC/L
+Active biomass,A++,120.08,0.27258,gC/L
+Active biomass,A++,143.55,0.30113,gC/L
+Active biomass,A++,167.75,0.29741,gC/L
+Active biomass,A++,192.18,0.30052,gC/L
+Active biomass,N-,0.0,0.0,gC/L
+Active biomass,N-,48.09,0.01146,gC/L
+Active biomass,N-,74.38,0.06615,gC/L
+Active biomass,N-,97.5,0.12297,gC/L
+Active biomass,N-,121.93,0.19423,gC/L
+Active biomass,N-,143.89,0.20882,gC/L
+Active biomass,N-,167.81,0.21918,gC/L
+Active biomass,N-,191.87,0.21847,gC/L
+Active biomass,TAP,0.0,0.0,gC/L
+Active biomass,TAP,47.73,0.01159,gC/L
+Active biomass,TAP,68.07,0.06751,gC/L
+Active biomass,TAP,90.3,0.12245,gC/L
+Active biomass,TAP,115.09,0.20458,gC/L
+Active biomass,TAP,144.1,0.24684,gC/L
+Active biomass,TAP,167.88,0.25609,gC/L
+Active biomass,TAP,191.8,0.2559,gC/L
+Biomass,A'–N',0.0,0.0,gC/L
+Biomass,A'–N',48.19,0.03017,gC/L
+Biomass,A'–N',71.69,0.0898,gC/L
+Biomass,A'–N',96.39,0.16739,gC/L
+Biomass,A'–N',143.98,0.24353,gC/L
+Biomass,A'–N',168.37,0.24425,gC/L
+Biomass,A'–N',193.07,0.23348,gC/L
+Biomass,A++,0.0,0.0,gC/L
+Biomass,A++,47.89,0.01796,gC/L
+Biomass,A++,71.69,0.0977,gC/L
+Biomass,A++,96.69,0.20259,gC/L
+Biomass,A++,120.48,0.33477,gC/L
+Biomass,A++,144.28,0.39368,gC/L
+Biomass,A++,168.67,0.40948,gC/L
+Biomass,A++,192.77,0.41451,gC/L
+Biomass,N-,0.0,0.0,gC/L
+Biomass,N-,47.89,0.01796,gC/L
+Biomass,N-,75.0,0.08261,gC/L
+Biomass,N-,99.1,0.15733,gC/L
+Biomass,N-,121.99,0.25575,gC/L
+Biomass,N-,143.98,0.29095,gC/L
+Biomass,N-,168.98,0.30172,gC/L
+Biomass,N-,192.77,0.30388,gC/L
+Biomass,TAP,0.0,0.0,gC/L
+Biomass,TAP,48.49,0.01149,gC/L
+Biomass,TAP,67.77,0.07687,gC/L
+Biomass,TAP,90.36,0.14224,gC/L
+Biomass,TAP,115.96,0.24569,gC/L
+Biomass,TAP,143.67,0.30316,gC/L
+Biomass,TAP,168.98,0.31609,gC/L
+Biomass,TAP,193.67,0.31537,gC/L
+Lipids,A'–N',0.0,0.0,gC/L
+Lipids,A'–N',48.14,0.00392,gC/L
+Lipids,A'–N',71.81,0.00863,gC/L
+Lipids,A'–N',96.43,0.01969,gC/L
+Lipids,A'–N',144.22,0.04512,gC/L
+Lipids,A'–N',168.12,0.04675,gC/L
+Lipids,A'–N',192.3,0.0477,gC/L
+Lipids,A++,0.0,0.0,gC/L
+Lipids,A++,47.6,0.00212,gC/L
+Lipids,A++,71.83,0.01015,gC/L
+Lipids,A++,96.26,0.0227,gC/L
+Lipids,A++,120.23,0.04195,gC/L
+Lipids,A++,144.3,0.06356,gC/L
+Lipids,A++,168.27,0.07589,gC/L
+Lipids,A++,192.39,0.07582,gC/L
+Lipids,N-,0.0,0.0,gC/L
+Lipids,N-,47.6,0.00212,gC/L
+Lipids,N-,74.8,0.00885,gC/L
+Lipids,N-,97.85,0.02394,gC/L
+Lipids,N-,121.93,0.03916,gC/L
+Lipids,N-,144.22,0.05416,gC/L
+Lipids,N-,168.12,0.05515,gC/L
+Lipids,N-,192.39,0.05668,gC/L
+Lipids,TAP,0.0,0.0,gC/L
+Lipids,TAP,47.6,0.00212,gC/L
+Lipids,TAP,68.1,0.00443,gC/L
+Lipids,TAP,90.1,0.01147,gC/L
+Lipids,TAP,115.71,0.02718,gC/L
+Lipids,TAP,144.32,0.0374,gC/L
+Lipids,TAP,168.59,0.04332,gC/L
+Lipids,TAP,192.3,0.04476,gC/L
+N quota,A'–N',0.0,0.99185,gN/gC
+N quota,A'–N',48.12,18.16668,gN/gC
+N quota,A'–N',72.07,3.54041,gN/gC
+N quota,A'–N',96.35,1.68339,gN/gC
+N quota,A'–N',119.99,0.98629,gN/gC
+N quota,A'–N',143.98,0.88173,gN/gC
+N quota,A'–N',167.85,0.84493,gN/gC
+N quota,A'–N',191.78,0.88653,gN/gC
+N quota,A++,0.0,0.99185,gN/gC
+N quota,A++,48.12,18.16668,gN/gC
+N quota,A++,72.07,3.54041,gN/gC
+N quota,A++,96.35,1.68339,gN/gC
+N quota,A++,119.99,0.98629,gN/gC
+N quota,A++,143.98,0.88173,gN/gC
+N quota,A++,167.85,0.84493,gN/gC
+N quota,A++,191.78,0.88653,gN/gC
+N quota,N-,0.0,0.99185,gN/gC
+N quota,N-,48.12,12.81992,gN/gC
+N quota,N-,74.52,3.09853,gN/gC
+N quota,N-,97.86,1.64032,gN/gC
+N quota,N-,121.8,1.02168,gN/gC
+N quota,N-,143.98,0.88173,gN/gC
+N quota,N-,167.85,0.84493,gN/gC
+N quota,N-,191.78,0.88653,gN/gC
+N quota,TAP,0.0,0.99185,gN/gC
+N quota,TAP,48.43,20.64121,gN/gC
+N quota,TAP,68.08,3.84972,gN/gC
+N quota,TAP,90.04,1.96193,gN/gC
+N quota,TAP,115.39,1.22045,gN/gC
+N quota,TAP,143.98,0.88173,gN/gC
+N quota,TAP,167.85,0.84493,gN/gC
+N quota,TAP,191.78,0.88653,gN/gC
+Nitrogen,A'–N',0.0,0.3152,gN/L
+Nitrogen,A'–N',48.55,0.13421,gN/L
+Nitrogen,A'–N',72.03,0.11998,gN/L
+Nitrogen,A'–N',96.3,0.10178,gN/L
+Nitrogen,A'–N',144.4,0.12222,gN/L
+Nitrogen,A'–N',168.09,0.1225,gN/L
+Nitrogen,A'–N',192.18,0.12194,gN/L
+Nitrogen,A++,0.0,0.38187,gN/L
+Nitrogen,A++,47.94,0.05731,gN/L
+Nitrogen,A++,72.06,0.0345,gN/L
+Nitrogen,A++,96.49,0.03158,gN/L
+Nitrogen,A++,120.31,0.0386,gN/L
+Nitrogen,A++,144.43,0.02924,gN/L
+Nitrogen,A++,168.24,0.02632,gN/L
+Nitrogen,A++,192.37,0.02398,gN/L
+Nitrogen,N-,0.0,0.35497,gN/L
+Nitrogen,N-,47.94,0.10936,gN/L
+Nitrogen,N-,74.81,0.09532,gN/L
+Nitrogen,N-,98.02,0.0883,gN/L
+Nitrogen,N-,122.14,0.08772,gN/L
+Nitrogen,N-,144.12,0.08772,gN/L
+Nitrogen,N-,168.24,0.0883,gN/L
+Nitrogen,N-,192.37,0.0883,gN/L
+Nitrogen,TAP,0.0,0.38187,gN/L
+Nitrogen,TAP,47.94,0.0924,gN/L
+Nitrogen,TAP,68.4,0.08772,gN/L
+Nitrogen,TAP,90.38,0.09649,gN/L
+Nitrogen,TAP,115.42,0.09825,gN/L
+Nitrogen,TAP,144.43,0.08889,gN/L
+Nitrogen,TAP,167.94,0.0883,gN/L
+Nitrogen,TAP,192.37,0.08655,gN/L
+Starch,A'–N',0.0,0.0,gC/L
+Starch,A'–N',48.65,0.00173,gC/L
+Starch,A'–N',72.1,0.00484,gC/L
+Starch,A'–N',96.53,0.01774,gC/L
+Starch,A'–N',144.18,0.04269,gC/L
+Starch,A'–N',168.73,0.04953,gC/L
+Starch,A'–N',192.55,0.0537,gC/L
+Starch,A++,0.0,0.0,gC/L
+Starch,A++,48.57,0.00293,gC/L
+Starch,A++,71.9,0.00536,gC/L
+Starch,A++,96.84,0.01002,gC/L
+Starch,A++,120.71,0.02032,gC/L
+Starch,A++,144.01,0.03041,gC/L
+Starch,A++,168.62,0.0362,gC/L
+Starch,A++,192.75,0.03813,gC/L
+Starch,N-,0.0,0.0,gC/L
+Starch,N-,48.46,0.00123,gC/L
+Starch,N-,75.02,0.00594,gC/L
+Starch,N-,98.58,0.0131,gC/L
+Starch,N-,121.98,0.02219,gC/L
+Starch,N-,143.77,0.028,gC/L
+Starch,N-,168.68,0.02971,gC/L
+Starch,N-,192.64,0.03098,gC/L
+Starch,TAP,0.0,0.0,gC/L
+Starch,TAP,48.23,0.00146,gC/L
+Starch,TAP,68.43,0.00438,gC/L
+Starch,TAP,89.66,0.00875,gC/L
+Starch,TAP,114.87,0.01235,gC/L
+Starch,TAP,144.03,0.01597,gC/L
+Starch,TAP,168.57,0.0171,gC/L
+Starch,TAP,192.54,0.01788,gC/L
+pH,A'–N',0.0,6.99818,-
+pH,A'–N',48.14,7.00998,-
+pH,A'–N',71.7,7.27129,-
+pH,A'–N',95.79,7.58449,-
+pH,A'–N',143.77,7.83081,-
+pH,A'–N',167.67,7.8988,-
+pH,A'–N',191.57,7.74387,-
+pH,A++,0.0,6.99818,-
+pH,A++,47.99,7.06621,-
+pH,A++,71.98,7.38386,-
+pH,A++,96.06,7.6235,-
+pH,A++,119.69,7.9679,-
+pH,A++,143.68,8.29559,-
+pH,A++,167.67,8.52407,-
+pH,A++,191.66,8.41485,-
+pH,N-,0.0,6.99818,-
+pH,N-,47.95,6.97917,-
+pH,N-,74.52,7.30609,-
+pH,N-,98.07,7.59123,-
+pH,N-,121.8,7.70317,-
+pH,N-,143.68,7.88298,-
+pH,N-,167.63,8.11533,-
+pH,N-,191.79,8.08264,-
+pH,TAP,0.0,6.99818,-
+pH,TAP,47.82,7.1428,-
+pH,TAP,68.02,7.34238,-
+pH,TAP,89.9,7.79382,-
+pH,TAP,115.09,7.87748,-
+pH,TAP,143.69,8.14502,-
+pH,TAP,167.68,8.3041,-
+pH,TAP,191.72,8.28241,-
