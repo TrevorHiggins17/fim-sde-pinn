@@ -1,0 +1,567 @@
+import numpy as np
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib.lines import Line2D
+from scipy.integrate import solve_ivp
+
+
+matplotlib.rcParams.update({
+    "font.family":          "serif",
+    "font.serif":           ["DejaVu Serif", "Times New Roman", "Times", "serif"],
+    "font.size":            8,
+    "axes.labelsize":       8,
+    "axes.titlesize":       8.5,
+    "axes.titleweight":     "bold",
+    "axes.linewidth":       0.7,
+    "axes.spines.top":      False,
+    "axes.spines.right":    False,
+    "xtick.labelsize":      7,
+    "ytick.labelsize":      7,
+    "xtick.major.width":    0.7,
+    "ytick.major.width":    0.7,
+    "xtick.minor.width":    0.5,
+    "xtick.major.size":     3.0,
+    "ytick.major.size":     3.0,
+    "xtick.minor.size":     1.8,
+    "xtick.direction":      "out",
+    "ytick.direction":      "out",
+    "legend.fontsize":      7,
+    "legend.framealpha":    0.9,
+    "legend.edgecolor":     "0.75",
+    "legend.handlelength":  2.2,
+    "lines.linewidth":      1.4,
+    "lines.antialiased":    True,
+    "figure.dpi":           150,
+    "savefig.dpi":          300,
+    "savefig.bbox":         "tight",
+    "savefig.pad_inches":   0.05,
+    "grid.linewidth":       0.4,
+    "grid.alpha":           0.35,
+    "grid.color":           "0.70",
+})
+
+#Literature Values
+
+p = dict(
+    mu_max   = 0.106,    kiA      = 0.109,    KsI      = 1.4,
+    KsA      = 1.789,    kiI      = 186.52,   sigma    = 1.0,
+    qN0      = 0.876,    YXA      = 0.059,
+    rhoN_max = 40.445,   Kstar    = 0.3125,   n        = 18.183,
+    phiN     = 137.455,  KsN      = 0.162,    kiN      = 0.113,
+    KsA_N    = 1.004,    kiA_N    = 1.098,
+    r1       = 0.0420,   r2       = 0.00410,
+    r3       = 0.162,    r4       = 0.0049,
+    KsS      = 0.0,      kiS      = 0.2079,   nS       = 3.6205,
+    k1       = 0.1771,   phiS     = 0.6675,
+    KsL      = 0.0227,   kiL      = 0.0861,   nL       = 1.8117,
+    k2       = 0.2135,   phiL     = 0.0,
+    KH       = 4.653,
+)
+
+I0     = 125.0
+z      = 0.05
+X_SEED = 5.0e-4
+QN_IC  = 0.99185
+H_IC   = 6.99818
+
+CONVERT_X_FOR_PHIN = False
+GC_TO_GDW = 1.0 / 0.504
+
+CONDITIONS = {
+    "TAP":   dict(A0=0.41913, N0=0.38187, color="#2C2C2C", ls="-",   marker="o", label="TAP"),
+    "N-":    dict(A0=0.41913, N0=0.35497, color="#1A6FAF", ls="--",  marker="s", label=r"N$^{-}$"),
+    "A++":   dict(A0=1.26341, N0=0.38187, color="#C0392B", ls="-.",  marker="^", label=r"A$^{++}$"),
+    "A'–N'": dict(A0=1.16514, N0=0.31520, color="#27855A", ls=":",   marker="D", label=r"A$'$–N$'$"),
+}
+
+T0_EXCLUDE = {"Biomass", "Active biomass"}
+NO_CLIP    = {"pH", "N quota"}
+
+VAR_MAP = {
+    "Biomass": 0, "Nitrogen": 1, "N quota": 2, "Acetate": 3,
+    "Starch": 4,  "Lipids": 5,  "Active biomass": 6, "pH": 7,
+}
+
+PANELS = [
+    ("Biomass",        r"(a)  Biomass",        r"$X$ (g$_\mathrm{C}$ L$^{-1}$)",                    0),
+    ("Nitrogen",       r"(b)  Nitrogen",       r"$N$ (g$_\mathrm{N}$ L$^{-1}$)",                    1),
+    ("N quota",        r"(c)  N quota",        r"$q_N$ (g$_\mathrm{N}$ g$_\mathrm{C}^{-1}$)",       2),
+    ("Acetate",        r"(d)  Acetate",        r"$A$ (g$_\mathrm{C}$ L$^{-1}$)",                    3),
+    ("Starch",         r"(e)  Starch",         r"$S$ (g$_\mathrm{C}$ L$^{-1}$)",                    4),
+    ("Lipids",         r"(f)  Lipids",         r"$L$ (g$_\mathrm{C}$ L$^{-1}$)",                    5),
+    ("Active biomass", r"(g)  Active biomass", r"$x^{*}$ (g$_\mathrm{C}$ L$^{-1}$)",               6),
+    ("pH",             r"(h)  pH",             r"pH",                                                7),
+]
+
+
+# ODE FUNCTIONS  (logic identical to original)
+
+def make_ic(A0, N0):
+    return np.array([X_SEED, N0, QN_IC, A0, 0.0, 0.0, X_SEED, H_IC])
+
+def _pos(x):
+    return x if x > 0.0 else 0.0
+
+def andrews(u, Ks, ki):
+    u = _pos(u)
+    return u / (u + Ks + u * u / ki)
+
+def g_internal_N(Ni, Ks, ki, n_exp):
+    Ni = _pos(Ni)
+    if Ni < 1e-20:
+        return 0.0
+    Nin   = Ni ** n_exp
+    Ksn   = Ks ** n_exp if Ks > 1e-20 else 0.0
+    inner = (Ni * Ni / ki) ** n_exp
+    denom = Nin + Ksn + inner
+    return Nin / denom if denom > 1e-20 else 0.0
+
+def compute_wH(Xw, Aw):
+    I      = I0 * np.exp(-p["sigma"] * Xw * z)
+    wH_num = Aw / p["KsA"]
+    wI_num = I  / p["KsI"]
+    dw     = wH_num + wI_num
+    return (0.5 if dw < 1e-14 else wH_num / dw), I
+
+def compute_rho(Xw, Nw, Aw, N0):
+    X_for_phi = Xw * GC_TO_GDW if CONVERT_X_FOR_PHIN else Xw
+    rho_bar   = (p["rhoN_max"]
+                 * N0**p["n"] / (N0**p["n"] + p["Kstar"]**p["n"])
+                 * np.exp(-p["phiN"] * X_for_phi))
+    return (rho_bar
+            * andrews(Nw, p["KsN"],   p["kiN"])
+            * andrews(Aw, p["KsA_N"], p["kiA_N"]))
+
+def ode_rhs(t, y, A0, N0):
+    X, N, qN, A, S, L, xact, H = y
+    Xw    = _pos(X);  Nw = _pos(N);  Aw = _pos(A);  xactw = _pos(xact)
+    qNw   = max(qN, p["qN0"] + 1e-12)
+    wH, I    = compute_wH(Xw, Aw)
+    wI       = 1.0 - wH
+    muH_norm = andrews(Aw, p["KsA"], p["kiA"])
+    muI_norm = andrews(I,  p["KsI"], p["kiI"])
+    mu_bar   = p["mu_max"] * (wH * muH_norm + wI * muI_norm)
+    mu       = max(mu_bar * (1.0 - p["qN0"] / qNw), 0.0)
+    rho      = compute_rho(Xw, Nw, Aw, N0)
+    Ni       = qNw * Xw
+    Aint     = max(A0 - Aw, 0.0)
+    gS       = g_internal_N(Ni, p["KsS"], p["kiS"], p["nS"])
+    gL       = g_internal_N(Ni, p["KsL"], p["kiL"], p["nL"])
+    Nn       = Nw / N0
+    gate_S   = p["k1"] / (p["k1"] + Nn)
+    gate_L   = p["k2"] / (p["k2"] + Nn)
+    drive_S  = mu + np.exp(p["phiS"] * Aint)
+    drive_L  = mu + np.exp(p["phiL"] * Aint)
+    R1 = p["r1"] * gS * gate_S * drive_S * xactw
+    R3 = p["r3"] * gL * gate_L * drive_L * xactw
+    R2 = (p["r2"] / qNw) * Xw
+    R4 = (p["r4"] / qNw) * Xw
+    dX     = mu * Xw
+    dN     = -rho * Xw
+    dqN    = rho - mu * qNw
+    frac_H = muH_norm / (muH_norm + muI_norm + 1e-14)
+    dA     = -(1.0 / p["YXA"]) * frac_H * dX
+    dxact  = dX + R2 + R4 - R1 - R3
+    dS     = R1 - R2
+    dL     = R3 - R4
+    dH     = p["KH"] * dxact
+    return [dX, dN, dqN, dA, dS, dL, dxact, dH]
+
+def empirical_slope(sub_N, t_lo, t_hi):
+    window = sub_N[(sub_N["time_h"] >= t_lo) & (sub_N["time_h"] <= t_hi)]
+    if len(window) < 2:
+        return None
+    window = window.sort_values("time_h")
+    t1, N1 = window.iloc[0]["time_h"],  window.iloc[0]["value"]
+    t2, N2 = window.iloc[-1]["time_h"], window.iloc[-1]["value"]
+    slope  = (N2 - N1) / (t2 - t1) if (t2 - t1) > 0 else np.nan
+    return slope, t1, t2, N1, N2
+
+# Load Data and Solve
+
+data = pd.read_csv("fig3_digitized_tidy.csv")
+data.columns = data.columns.str.strip()
+
+print("── STRING MATCH CHECK ──")
+csv_conds  = sorted(data["condition"].unique())
+code_conds = sorted(CONDITIONS.keys())
+print(f"  CSV  : {csv_conds}")
+print(f"  Code : {code_conds}")
+if csv_conds == code_conds:
+    print("  ✓ match\n")
+else:
+    print("  ✗ MISMATCH")
+    for c in code_conds:
+        if c not in csv_conds:
+            print(f"    code key not in CSV : {repr(c)}")
+    for c in csv_conds:
+        if c not in code_conds:
+            print(f"    CSV key not in code : {repr(c)}")
+
+print(f"CONVERT_X_FOR_PHIN = {CONVERT_X_FOR_PHIN}\n")
+sols = {}
+for cname, cfg in CONDITIONS.items():
+    y0  = make_ic(cfg["A0"], cfg["N0"])
+    sol = solve_ivp(
+        fun=lambda t, y, A0=cfg["A0"], N0=cfg["N0"]: ode_rhs(t, y, A0, N0),
+        t_span=(0.0, 200.0),
+        y0=y0,
+        method="LSODA",
+        rtol=1e-8,
+        atol=1e-10,
+        dense_output=True,
+        t_eval=np.linspace(0.0, 200.0, 5001),
+    )
+    sols[cname] = sol
+    X, N, qN, A, S, L, xact, H = sol.y
+    inv = X - (xact + S + L)
+    print(f"{cname:8s}  status={sol.status}  nfev={sol.nfev}"
+          f"  |inv|_max={np.max(np.abs(inv)):.2e}"
+          f"  X_fin={X[-1]:.4f}  S_fin={S[-1]:.5f}  L_fin={L[-1]:.5f}")
+
+
+# Diagnostics 
+
+print(f"\n{'═'*70}")
+print("OPEN QUESTION 1: wH")
+print(f"  {'Cond':<10} {'t=0h':>8} {'t=48h':>8} {'t=96h':>8} {'t=192h':>8}  verdict")
+wH_findings = {}
+for cname, sol in sols.items():
+    row = []
+    for tc in [0.0, 48.0, 96.0, 192.0]:
+        y = sol.sol(tc)
+        wH, _ = compute_wH(max(y[0], 0.0), max(y[3], 0.0))
+        row.append(wH)
+    wH_findings[cname] = max(row)
+    verdict = "PHOTOTROPHIC ONLY ✗" if max(row) < 0.02 else "heterotrophy present ✓"
+    print(f"  {cname:<10} {row[0]:8.4f} {row[1]:8.4f} {row[2]:8.4f} {row[3]:8.4f}  {verdict}")
+
+tap_wH = wH_findings.get("TAP", 0)
+app_wH = wH_findings.get("A++", 0)
+print(f"\n  A++ wH vs TAP wH: {app_wH:.4f} vs {tap_wH:.4f}  ratio={app_wH/tap_wH:.2f}x")
+print(f"  {'✓ separation present' if app_wH > tap_wH * 1.5 else '✗ no meaningful separation'}")
+
+print(f"\n{'═'*70}")
+print("OPEN QUESTION 2: -rho·X vs empirical slope")
+q2_results = {}
+for cname, sol in sols.items():
+    N0    = CONDITIONS[cname]["N0"]
+    sub_N = data[(data["variable"] == "Nitrogen") & (data["condition"] == cname)]
+    early = empirical_slope(sub_N, 0.0,  55.0)
+    mid   = empirical_slope(sub_N, 45.0, 105.0)
+    print(f"\n  {cname}")
+    rhoX_at_48 = None
+    for tc in [0.0, 24.0, 48.0, 96.0]:
+        y  = sol.sol(tc)
+        Xw = max(y[0], 0.0)
+        rho = compute_rho(Xw, max(y[1], 0.0), max(y[3], 0.0), N0)
+        dN  = -rho * Xw
+        if tc == 48.0:
+            rhoX_at_48 = dN
+        print(f"    t={tc:5.0f}h  rho={rho:.4e}  -rho·X={dN:.4e}  X={Xw:.5f}")
+    q2_results[cname] = {}
+    if early:
+        s, t1, t2, n1, n2 = early
+        ratio = rhoX_at_48 / s if s != 0 else np.nan
+        match = "≈ MATCH ✓" if 0.3 < abs(ratio) < 3.0 else "MISMATCH ✗"
+        print(f"    emp dN/dt ({t1:.1f}→{t2:.1f}h): {s:.4e}  ratio={ratio:.2f}  {match}")
+        q2_results[cname] = {"early_slope": s, "rhoX_48": rhoX_at_48, "ratio": ratio}
+    if mid:
+        s, t1, t2, n1, n2 = mid
+        q2_results[cname]["mid_slope"] = s
+        print(f"    emp dN/dt ({t1:.1f}→{t2:.1f}h): {s:.4e}  ← mid-phase check")
+
+print(f"\n{'═'*70}")
+print(f"RMSE TABLE")
+print(f"\n  {'Variable':<20} {'Cond':>8} {'N_pts':>6} {'RMSE':>10} {'%max':>7}")
+print(f"  {'─'*58}")
+rmse_store = {}
+for cname, sol in sols.items():
+    for var, idx in VAR_MAP.items():
+        sub = data[(data["variable"] == var) & (data["condition"] == cname)]
+        if sub.empty:
+            continue
+        if var in T0_EXCLUDE:
+            sub = sub[sub["time_h"] > 0.0]
+        if sub.empty:
+            continue
+        t_d  = sub["time_h"].values
+        y_d  = sub["value"].values
+        y_m  = sol.sol(t_d)[idx]
+        if var not in NO_CLIP:
+            y_m = np.maximum(y_m, 0.0)
+        rmse = np.sqrt(np.mean((y_m - y_d) ** 2))
+        mx   = max(np.max(np.abs(y_d)), 1e-12)
+        pct  = 100.0 * rmse / mx
+        flag = "✓" if pct < 10 else "✗"
+        rmse_store[(cname, var)] = pct
+        print(f"  {var:<20} {cname:>8} {len(t_d):>6} {rmse:10.5f} {pct:6.1f}%  {flag}")
+
+wH_all_low      = all(v < 0.02 for v in wH_findings.values())
+biomass_rmse_ok = all(rmse_store.get((c, "Biomass"), 99) < 10 for c in ["A++", "A'–N'"])
+n_rmse_bad      = any(rmse_store.get((c, "Nitrogen"), 0) > 15 for c in CONDITIONS)
+print(f"\n  Q1 wH < 0.02 everywhere          : {'YES ✗' if wH_all_low else 'NO ✓'}")
+print(f"  Q1 A++ wH > TAP wH (separation)  : {'YES ✓' if app_wH > tap_wH * 1.5 else 'NO ✗'}")
+print(f"  Q2 Biomass RMSE ok A++/A'–N'     : {'YES ✓ parameters compensate' if biomass_rmse_ok else 'NO ✗ structural problem'}")
+print(f"  Q2 Nitrogen RMSE > 15% any cond  : {'YES ✗ N dynamics off' if n_rmse_bad else 'NO ✓ N dynamics acceptable'}")
+
+
+# Median RMSE across all (condition, variable) pairs
+all_pcts = list(rmse_store.values())
+median_rmse = np.median(all_pcts)
+
+# Per-variable median across conditions
+var_medians = {}
+for var in VAR_MAP:
+    vals = [rmse_store[(c, var)] for c in CONDITIONS if (c, var) in rmse_store]
+    if vals:
+        var_medians[var] = np.median(vals)
+
+# Best and worst fitting state variables
+best_var  = min(var_medians, key=var_medians.get)
+worst_var = max(var_medians, key=var_medians.get)
+
+# Mass balance: max invariant violation across all conditions
+inv_max_all = {}
+for cname, sol in sols.items():
+    X, N, qN, A, S, L, xact, H = sol.y
+    inv = X - (xact + S + L)
+    inv_max_all[cname] = np.max(np.abs(inv))
+global_inv_max = max(inv_max_all.values())
+
+# wH: effectively phototrophic everywhere
+max_wH_overall = max(wH_findings.values())
+
+# R² per condition (biomass as primary proxy)
+r2_biomass = {}
+for cname, sol in sols.items():
+    sub = data[(data["variable"] == "Biomass") & (data["condition"] == cname)]
+    if sub.empty: continue
+    t_d = sub["time_h"].values
+    y_d = sub["value"].values
+    y_m = np.maximum(sol.sol(t_d)[0], 0.0)
+    ss_res = np.sum((y_d - y_m)**2)
+    ss_tot = np.sum((y_d - np.mean(y_d))**2)
+    r2_biomass[cname] = 1.0 - ss_res / ss_tot if ss_tot > 1e-20 else float("nan")
+
+
+
+MSTYLE = dict(s=14, zorder=6, linewidths=0.7)   # for some hollow markers throughout
+
+def _fmt_ax(ax):
+    """Apply standard axis formatting to any time-series panel."""
+    ax.set_xlim(0, 200)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(50))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(25))
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4, min_n_ticks=3))
+    ax.set_xlabel("Time (h)", labelpad=2)
+    ax.grid(True, which="major")
+
+def _shared_legend(fig, extra_handles=None, ncol=5, y=0.0):
+    """Attach a shared condition legend to the bottom of fig."""
+    handles = [
+        Line2D([0], [0], color=cfg["color"], lw=1.4, ls=cfg["ls"],
+               label=cfg["label"])
+        for cfg in CONDITIONS.values()
+    ]
+    handles.append(
+        Line2D([0], [0], marker="o", color="0.45", lw=0,
+               markerfacecolor="white", markeredgecolor="0.45",
+               markersize=4, label="Experimental data")
+    )
+    if extra_handles:
+        handles.extend(extra_handles)
+    fig.legend(
+        handles, [h.get_label() for h in handles],
+        loc="lower center", ncol=ncol,
+        bbox_to_anchor=(0.5, y),
+        frameon=True, fontsize=7,
+        handlelength=2.2, columnspacing=1.0, borderpad=0.4,
+    )
+
+# figure 1
+
+fig1, axes1 = plt.subplots(2, 4, figsize=(6.8, 6.2))
+fig1.subplots_adjust(left=0.11, right=0.98, bottom=0.13, top=0.96,
+                     wspace=0.58, hspace=0.48)
+
+for ax_i, (var, title, ylabel, state_idx) in enumerate(PANELS):
+    ax = axes1.flat[ax_i]
+    for cname, sol in sols.items():
+        cfg = CONDITIONS[cname]
+        ax.plot(sol.t, sol.y[state_idx],
+                color=cfg["color"], ls=cfg["ls"], label=cfg["label"])
+    for cname, sol in sols.items():
+        cfg = CONDITIONS[cname]
+        sub = data[(data["variable"] == var) & (data["condition"] == cname)]
+        if var in T0_EXCLUDE:
+            sub = sub[sub["time_h"] > 0.0]
+        if not sub.empty:
+            ax.scatter(sub["time_h"], sub["value"],
+                       facecolors="white", edgecolors=cfg["color"],
+                       marker=cfg["marker"], **MSTYLE)
+    ax.set_title(title, pad=3, loc="left")
+    ax.set_ylabel(ylabel, labelpad=2)
+    _fmt_ax(ax)
+    if var not in NO_CLIP:
+        ax.set_ylim(bottom=0)
+
+_shared_legend(fig1, ncol=5, y=0.02)
+plt.savefig("fig3_1_model_vs_data_pub.png", dpi=300)
+print("\nSaved: fig3_1_model_vs_data_pub.png")
+
+# figure 2
+t_dense = np.linspace(0, 200, 5001)
+
+fig2, (ax_main, ax_bar) = plt.subplots(
+    1, 2, figsize=(6.5, 2.8),
+    gridspec_kw={"width_ratios": [2, 1]}
+)
+fig2.subplots_adjust(left=0.09, right=0.98, bottom=0.18, top=0.88,
+                     wspace=0.38)
+
+# Left — wH timecourse
+for cname, sol in sols.items():
+    cfg  = CONDITIONS[cname]
+    wH_t = np.array([
+        compute_wH(max(sol.sol(t)[0], 0.0), max(sol.sol(t)[3], 0.0))[0]
+        for t in t_dense
+    ])
+    ax_main.plot(t_dense, wH_t,
+                 color=cfg["color"], ls=cfg["ls"], label=cfg["label"])
+
+thresh_line = ax_main.axhline(0.02, color="0.5", lw=0.9, ls=":",
+                               label=r"$w_H = 0.02$ threshold")
+ax_main.set_ylabel(r"Heterotrophic weight $w_H$ (—)", labelpad=2)
+ax_main.set_title(r"(a)  Mixotrophic weighting coefficient $w_H(t)$",
+                  pad=4, loc="left")
+ax_main.set_ylim(0, 0.012)
+ax_main.yaxis.set_major_locator(ticker.MultipleLocator(0.002))
+ax_main.annotate(
+    r"$I_0/K_{sI}$" + f" = {I0/p['KsI']:.0f}\n"
+    r"$w_H \ll 0.02$ throughout",
+    xy=(105, 0.009), fontsize=6.5,
+    bbox=dict(boxstyle="round,pad=0.35", fc="0.97", ec="0.75", lw=0.7),
+)
+_fmt_ax(ax_main)
+ax_main.legend(fontsize=6.5, loc="upper right",
+               handles=[
+                   Line2D([0],[0], color=cfg["color"], ls=cfg["ls"],
+                          label=cfg["label"])
+                   for cfg in CONDITIONS.values()
+               ] + [thresh_line])
+
+# Right — bar chart of max wH per condition
+cnames_  = list(CONDITIONS.keys())
+labels_  = [CONDITIONS[c]["label"] for c in cnames_]
+colors_  = [CONDITIONS[c]["color"] for c in cnames_]
+maxwH    = [wH_findings[c] for c in cnames_]
+x_pos    = np.arange(len(cnames_))
+
+bars = ax_bar.bar(x_pos, maxwH, width=0.55,
+                  color=colors_, edgecolor="k", linewidth=0.6)
+ax_bar.axhline(0.02, color="0.5", lw=0.9, ls=":",
+               label=r"$w_H = 0.02$")
+ax_bar.set_xticks(x_pos)
+ax_bar.set_xticklabels(labels_, fontsize=7)
+ax_bar.set_ylabel(r"Peak $w_H$ (0–200 h)", labelpad=2)
+ax_bar.set_title(r"(b)  Peak $w_H$ per condition", pad=4, loc="left")
+ax_bar.set_ylim(0, 0.012)
+ax_bar.yaxis.set_major_locator(ticker.MultipleLocator(0.002))
+ax_bar.legend(fontsize=6.5, loc="upper right")
+ax_bar.grid(True, axis="y")
+for bar, val in zip(bars, maxwH):
+    ax_bar.text(bar.get_x() + bar.get_width() / 2,
+                val + 0.00015, f"{val:.4f}",
+                ha="center", va="bottom", fontsize=6)
+
+plt.savefig("fig3_2a_wH_diagnostic_pub.png", dpi=300)
+print("Saved: fig3_2a_wH_diagnostic_pub.png")
+
+# figure 3
+fig3, axes3 = plt.subplots(1, 2, figsize=(6.5, 2.9))
+fig3.subplots_adjust(left=0.10, right=0.98, bottom=0.15, top=0.88,
+                     wspace=0.38)
+
+cnames_ordered = list(CONDITIONS.keys())
+n_conds        = len(cnames_ordered)
+x_pos          = np.arange(n_conds)
+width          = 0.30
+
+# ── Left panel: early phase (0 → ~48 h) ──────────────────────────────────────
+model_early, data_early = [], []
+for cname in cnames_ordered:
+    res = q2_results.get(cname, {})
+    model_early.append(abs(res.get("rhoX_48",    0.0)))
+    data_early.append( abs(res.get("early_slope", 0.0)))
+
+bar_colors = [CONDITIONS[c]["color"] for c in cnames_ordered]
+
+axes3[0].bar(x_pos - width / 2, model_early, width,
+             label=r"Model $|-\rho_N X|$ at $t = 48$ h",
+             color=bar_colors, edgecolor="k", linewidth=0.6)
+axes3[0].bar(x_pos + width / 2, data_early, width,
+             label=r"Data $|\Delta N/\Delta t|$ (0→48 h)",
+             color=bar_colors, edgecolor="k", linewidth=0.6,
+             alpha=0.40, hatch="///")
+
+axes3[0].set_xticks(x_pos)
+axes3[0].set_xticklabels([CONDITIONS[c]["label"] for c in cnames_ordered], fontsize=7)
+axes3[0].set_ylabel(r"$|dN/dt|$ (g$_\mathrm{N}$ L$^{-1}$ h$^{-1}$)", labelpad=2)
+axes3[0].set_title(r"(a)  Early phase (0–48 h)", pad=4, loc="left")
+axes3[0].legend(fontsize=6.5, loc="upper right")
+axes3[0].grid(True, axis="y")
+axes3[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+
+for i, cname in enumerate(cnames_ordered):
+    res   = q2_results.get(cname, {})
+    ratio = res.get("ratio", np.nan)
+    if not np.isnan(ratio):
+        ymax = max(model_early[i], data_early[i])
+        axes3[0].text(i, ymax * 1.06, f"{ratio:.2f}×",
+                      ha="center", va="bottom", fontsize=6, color="0.25")
+
+# ── Right panel: mid phase (48 → ~96 h) ──────────────────────────────────────
+model_mid, data_mid = [], []
+for cname in cnames_ordered:
+    N0  = CONDITIONS[cname]["N0"]
+    sol = sols[cname]
+    y96 = sol.sol(96.0)
+    Xw  = max(y96[0], 0.0)
+    rho = compute_rho(Xw, max(y96[1], 0.0), max(y96[3], 0.0), N0)
+    model_mid.append(abs(-rho * Xw))
+    res = q2_results.get(cname, {})
+    data_mid.append(abs(res.get("mid_slope", 0.0)))
+
+axes3[1].bar(x_pos - width / 2, model_mid, width,
+             label=r"Model $|-\rho_N X|$ at $t = 96$ h",
+             color=bar_colors, edgecolor="k", linewidth=0.6)
+axes3[1].bar(x_pos + width / 2, data_mid, width,
+             label=r"Data $|\Delta N/\Delta t|$ (48→96 h)",
+             color=bar_colors, edgecolor="k", linewidth=0.6,
+             alpha=0.40, hatch="///")
+
+axes3[1].set_xticks(x_pos)
+axes3[1].set_xticklabels([CONDITIONS[c]["label"] for c in cnames_ordered], fontsize=7)
+axes3[1].set_ylabel(r"$|dN/dt|$ (g$_\mathrm{N}$ L$^{-1}$ h$^{-1}$)", labelpad=2)
+axes3[1].set_title(r"(b)  Mid phase (48–96 h)", pad=4, loc="left")
+axes3[1].legend(fontsize=6.5, loc="upper right")
+axes3[1].grid(True, axis="y")
+axes3[1].yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+
+axes3[1].annotate(
+    r"Model uptake collapses" + "\n"
+    r"($\exp(-\phi_N X) \to 0$);" + "\n"
+    "data: continued depletion",
+    xy=(1.5, max(data_mid) * 0.55),
+    fontsize=6.5,
+    bbox=dict(boxstyle="round,pad=0.35", fc="0.97", ec="0.75", lw=0.7),
+)
+
+plt.savefig("fig3_2b_rhoX_diagnostic_pub.png", dpi=300)
+print("Saved: fig3_2b_rhoX_diagnostic_pub.png")
+
+plt.show()
+print("\nAll figures saved.")
